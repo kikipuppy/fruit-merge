@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6edda">
+  <meta name="description" content="果园叠叠乐：一款用 HTML、CSS 和原生 JavaScript 制作的水果合成小游戏。相同水果相撞会升级，别让果堆越过警戒线。">
+  <title>果园叠叠乐｜水果合成小游戏</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient-orb ambient-orb--peach"></span>
+    <span class="ambient-orb ambient-orb--lime"></span>
+    <span class="ambient-orb ambient-orb--apricot"></span>
+    <span class="ambient-leaf ambient-leaf--one"></span>
+    <span class="ambient-leaf ambient-leaf--two"></span>
+  </div>
+
+  <div class="page">
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="果园叠叠乐">
+        <span class="brand-fruit" aria-hidden="true"><i></i></span>
+        <span class="brand-copy">
+          <span class="brand-en">ORCHARD STACK</span>
+          <span class="brand-cn">果园叠叠乐</span>
+        </span>
+      </a>
+      <p class="header-note"><span class="note-dot" aria-hidden="true"></span>相同水果，碰一下就会长大</p>
+    </header>
+
+    <main class="game-layout">
+      <section class="stage-card" aria-label="水果合成游戏区">
+        <div class="stage-top">
+          <div class="score-main">
+            <span class="score-label">本局得分</span>
+            <strong id="scoreValue">0</strong>
+          </div>
+          <div class="best-main">
+            <span>最佳</span>
+            <strong id="bestValue">0</strong>
+          </div>
+          <div class="mobile-next" id="mobileNext" role="img" aria-label="下一颗水果">
+            <span class="mobile-next-label">下一颗</span>
+            <span class="mobile-next-orb"><canvas id="mobileNextCanvas" width="52" height="52" aria-hidden="true"></canvas></span>
+          </div>
+          <div class="stage-tools">
+            <button class="tool-btn" id="pauseBtn" type="button" title="暂停游戏（P）" aria-label="暂停游戏" disabled>
+              <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"></rect><rect x="14" y="5" width="4" height="14" rx="1.5"></rect></svg>
+              <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.55.83l9.2-6.4a1 1 0 0 0 0-1.66l-9.2-6.4A1 1 0 0 0 8 5.6Z"></path></svg>
+              <span id="pauseLabel">暂停</span>
+            </button>
+            <button class="tool-btn" id="soundBtn" type="button" title="开关音效" aria-label="关闭音效" aria-pressed="true">
+              <svg class="icon-sound" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.2l4.3 3.6V5.9L7.2 9.5H4Z"></path><path d="M15 8.7a5 5 0 0 1 0 6.6M17.7 6a8.6 8.6 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+              <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.2l4.3 3.6V5.9L7.2 9.5H4Z"></path><path d="m15 9 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+              <span id="soundLabel">音效开</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="canvas-shell" id="canvasShell">
+          <canvas id="gameCanvas" width="420" height="610" tabindex="0" role="img" aria-label="水果合成游戏画面。移动指针或拖动选择落点，点击或松手投下水果。"></canvas>
+
+          <div class="danger-toast" id="dangerToast" hidden aria-hidden="true">
+            <span class="danger-bang">!</span>
+            <span>果堆超过警戒线</span>
+            <strong id="dangerCountdown">2.0</strong>
+            <span>秒后结束</span>
+          </div>
+
+          <div class="overlay intro-overlay" id="introOverlay">
+            <div class="intro-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+              <div class="intro-topline">
+                <span class="eyebrow">ORCHARD STACK</span>
+                <span class="time-chip">1 分钟上手</span>
+              </div>
+              <canvas class="intro-preview" id="introCanvas" width="320" height="112" aria-hidden="true"></canvas>
+              <h2 id="introTitle">相同水果<br><em>碰一下，就长大</em></h2>
+              <p class="intro-copy">把水果投进果园，两颗同类水果相撞时会合成更大的水果。慢一点，别让果堆越过上方的警戒线。</p>
+              <div class="intro-steps" aria-label="三步上手">
+                <span><b>01</b>移动选位</span>
+                <i aria-hidden="true"></i>
+                <span><b>02</b>点击落下</span>
+                <i aria-hidden="true"></i>
+                <span><b>03</b>相同合成</span>
+              </div>
+              <div class="player-entry">
+                <label class="name-field" for="playerNameInput">
+                  <span class="name-field-label">玩家昵称</span>
+                  <input id="playerNameInput" name="playerName" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="给自己取个名字" aria-describedby="playerNameError">
+                </label>
+                <p class="form-error" id="playerNameError" role="alert" hidden>请输入 1–12 个字符的昵称</p>
+              </div>
+              <button class="primary-btn" id="startBtn" type="button">
+                <span>开始游戏</span>
+                <span class="btn-arrow" aria-hidden="true">→</span>
+              </button>
+              <p class="intro-note">最高分会记入实时排行榜 · 支持鼠标 / 触屏 / 键盘</p>
+            </div>
+          </div>
+
+          <div class="overlay" id="gameOverOverlay" hidden>
+            <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
+              <div class="result-mark" aria-hidden="true"><span></span><i></i></div>
+              <p class="eyebrow">GAME OVER</p>
+              <h2 id="gameOverTitle">果园满出来啦</h2>
+              <p class="result-note" id="resultNote">水果们挤成了一团，下一局记得留点空间。</p>
+              <div class="result-meta">
+                <span class="result-player">
+                  <span class="result-avatar" id="resultAvatar" aria-hidden="true">果</span>
+                  <strong id="resultPlayerName">小果农</strong>
+                </span>
+                <span class="rank-chip" id="resultRank">第 1 名</span>
+                <span class="record-chip" id="newRecordBadge" hidden>新纪录</span>
+              </div>
+              <div class="result-stats">
+                <div><span>本局得分</span><strong id="finalScore">0</strong></div>
+                <div><span>最佳纪录</span><strong id="finalBest">0</strong></div>
+              </div>
+              <button class="primary-btn" id="restartBtn" type="button">
+                <span>再玩一次</span>
+                <span class="btn-arrow" aria-hidden="true">↻</span>
+              </button>
+              <p class="result-help">也可以按 <kbd>R</kbd> 重新开始</p>
+            </div>
+          </div>
+
+          <div class="overlay" id="pauseOverlay" hidden>
+            <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+              <p class="eyebrow">PAUSED</p>
+              <h2 id="pauseTitle">先歇一会儿</h2>
+              <p>水果们乖乖待在原地。</p>
+              <button class="primary-btn" id="resumeBtn" type="button"><span>继续游戏</span><span class="btn-arrow" aria-hidden="true">→</span></button>
+            </div>
+          </div>
+
+          <div class="overlay player-overlay" id="playerOverlay" hidden>
+            <div class="player-card" role="dialog" aria-modal="true" aria-labelledby="playerSwitchTitle">
+              <p class="eyebrow">PLAYER</p>
+              <h2 id="playerSwitchTitle">换一位玩家</h2>
+              <p class="player-switch-copy" id="playerSwitchCopy">选择已有昵称，或输入新的昵称。切换后会开始新的一局。</p>
+              <div class="saved-players" id="savedPlayers" aria-label="已有玩家"></div>
+              <label class="name-field name-field--stacked" for="switchNameInput">
+                <span class="name-field-label">玩家昵称</span>
+                <input id="switchNameInput" type="text" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="输入昵称" aria-describedby="switchNameError">
+              </label>
+              <p class="form-error" id="switchNameError" role="alert" hidden>请输入 1–12 个字符的昵称</p>
+              <button class="primary-btn" id="switchStartBtn" type="button">
+                <span>以该昵称开始新一局</span>
+                <span class="btn-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="text-btn" id="switchCancelBtn" type="button">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-bottom" aria-label="操作提示">
+          <span class="control-chip"><kbd>←</kbd><kbd>→</kbd>移动</span>
+          <span class="control-chip"><kbd>空格</kbd>落下</span>
+          <span class="control-chip"><kbd>P</kbd>暂停</span>
+          <span class="control-tip"><span aria-hidden="true">✦</span> 相同水果相撞即合成</span>
+          <span class="mobile-play-hint"><span class="swipe-mark" aria-hidden="true">↔</span>拖动瞄准 · 松手落下</span>
+          <button class="mobile-board-btn" id="mobileBoardBtn" type="button" aria-controls="leaderboardCard" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19V11h3v8H6Zm5 0V5h3v14h-3Zm5 0v-5h3v5h-3Z"></path></svg>
+            <span>排行榜</span>
+          </button>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="游戏信息">
+        <section class="side-card next-card">
+          <div class="card-heading">
+            <h2>下一颗</h2>
+            <span class="mini-badge">NEXT</span>
+          </div>
+          <div class="next-content">
+            <div class="next-orb">
+              <canvas id="nextCanvas" width="112" height="112" aria-hidden="true"></canvas>
+            </div>
+            <div class="next-copy">
+              <strong id="nextName">草莓</strong>
+              <span id="nextMeta">第 2 级水果</span>
+              <p id="nextHint">提前想好落点，别让它滚到边上。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="side-card leaderboard-card" id="leaderboardCard" aria-label="实时排行榜">
+          <div class="card-heading">
+            <h2>实时排行榜</h2>
+            <div class="leaderboard-heading-actions">
+              <span class="live-badge"><i aria-hidden="true"></i>LIVE</span>
+              <button class="sheet-close" id="closeBoardBtn" type="button" aria-label="关闭排行榜">完成</button>
+            </div>
+          </div>
+          <div class="current-player">
+            <span class="current-avatar" id="currentAvatar" aria-hidden="true">果</span>
+            <div class="current-player-copy">
+              <span>当前玩家</span>
+              <strong id="currentPlayerName">小果农</strong>
+            </div>
+            <span class="current-player-best"><span>最高</span><strong id="currentPlayerBest">0</strong></span>
+            <button class="switch-player" id="switchPlayerBtn" type="button">切换</button>
+          </div>
+          <ol class="leaderboard-list" id="leaderboardList" aria-label="玩家最高分排行榜"></ol>
+          <p class="leaderboard-empty" id="leaderboardEmpty" hidden>还没有玩家记录，开局后就会出现在这里。</p>
+          <div class="leaderboard-foot">
+            <span id="leaderboardCount">1 位玩家</span>
+            <span>最高分实时同步</span>
+          </div>
+        </section>
+
+        <section class="side-card how-card">
+          <div class="card-heading">
+            <h2>怎么玩</h2>
+            <span class="mini-badge">3 STEPS</span>
+          </div>
+          <ol class="how-list">
+            <li>
+              <span class="how-index">1</span>
+              <div><strong>选择落点</strong><p>移动鼠标或手指，也可按 <kbd>←</kbd><kbd>→</kbd>。</p></div>
+            </li>
+            <li>
+              <span class="how-index">2</span>
+              <div><strong>投下水果</strong><p>点击游戏区，或触屏拖动后松手。</p></div>
+            </li>
+            <li>
+              <span class="how-index">3</span>
+              <div><strong>相同合成</strong><p>同类水果碰撞后会变成更大的一颗。</p></div>
+            </li>
+          </ol>
+          <div class="rule-note">
+            <span class="rule-icon" aria-hidden="true">!</span>
+            <p>水果堆越过<strong>红色警戒线</strong>后，倒计时 2 秒结束。</p>
+          </div>
+          <div class="mini-chain">
+            <span class="mini-chain-label">合成链</span>
+            <div class="evolution-chain evolution-chain--mini" id="evolutionChain" aria-label="水果从樱桃到西瓜的合成顺序"></div>
+          </div>
+        </section>
+
+        <button class="restart-side" id="restartSide" type="button">
+          <span>重新开始</span><kbd>R</kbd>
+        </button>
+        <p class="side-footnote">最高分保存在本机 · 多标签页实时同步</p>
+      </aside>
+    </main>
+
+    <footer class="page-footer">
+      <span>果园叠叠乐</span>
+      <span>把小小的樱桃，叠成一整座夏天。</span>
+    </footer>
+
+    <div class="mobile-board-scrim" id="mobileBoardScrim" aria-hidden="true" hidden></div>
+  </div>
+
+  <div class="rotate-hint" role="status">
+    <span class="rotate-phone" aria-hidden="true"></span>
+    <strong>请竖屏游玩</strong>
+    <p>把手机转回竖屏，果园会更好操作。</p>
+  </div>
+
+  <p class="sr-only" id="liveStatus" aria-live="polite"></p>
+  <script src="game.js" defer></script>
+</body>
+</html>
