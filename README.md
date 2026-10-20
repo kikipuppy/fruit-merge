@@ -10,6 +10,10 @@
 
 ![手机端游戏预览](preview-mobile.png)
 
+## 在线试玩
+
+<https://kikipuppy.github.io/fruit-merge/>
+
 ## 运行方法
 
 ### 方式一：直接打开
